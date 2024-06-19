@@ -2,8 +2,8 @@
 
 
 Our Team
-Bruno Silva:
-Github: https://github.com/!!/
+Bruno Fernandes:
+Github: (https://github.com/aarpucc/Lisbon401)
 
 LinkedIn: https://www.linkedin.com/in/!!/
 
