@@ -4,7 +4,7 @@
 Our Team
 
 Bruno Fernandes:
-Github: (https://github.com/aarpucc/Lisbon401)
+Github: https://github.com/aarpucc/Lisbon401
 
 LinkedIn: https://www.linkedin.com/in/!!/
 
@@ -20,4 +20,5 @@ LinkedIn: https://www.linkedin.com/in/noahnavarro/
 
 Rafael Silva:
 Github: https://github.com/!!/
-LinkedIn: https://www.linkedin.com/in/!!
+
+LinkedIn: https://www.linkedin.com/in/!!/
