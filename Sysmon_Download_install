@@ -1,0 +1,66 @@
+#O powershell deve ser executado como adm
+# Defina o URL de download e o caminho do arquivo Sysmon
+$sysmonUrl = "https://download.sysinternals.com/files/Sysmon.zip"
+$sysmonZipPath = "$env:TEMP\Sysmon.zip"
+$sysmonExtractPath = "$env:TEMP\Sysmon"
+
+# Defina o conteúdo da configuração XML do Sysmon
+$sysmonConfigXml = @"
+<Sysmon schemaversion="4.22">
+  <!-- Capture hash of executable files -->
+  <HashAlgorithms>md5,sha256</HashAlgorithms>
+  <EventFiltering>
+    <!-- Log process creation -->
+    <ProcessCreate onmatch="include">
+      <Rule groupRelation="or">
+        <Image condition="is">C:\Windows\System32\cmd.exe</Image>
+        <Image condition="is">C:\Windows\System32\powershell.exe</Image>
+      </Rule>
+    </ProcessCreate>
+    <!-- Log network connections -->
+    <NetworkConnect onmatch="include" />
+  </EventFiltering>
+</Sysmon>
+"@
+
+# Função para baixar o Sysmon
+function Download-Sysmon {
+    Write-Host "Baixar Sysmon..."
+    Invoke-WebRequest -Uri $sysmonUrl -OutFile $sysmonZipPath
+    Write-Host "Extrair Sysmon..."
+    Expand-Archive -Path $sysmonZipPath -DestinationPath $sysmonExtractPath -Force
+}
+
+# Função para instalar o Sysmon
+function Install-Sysmon {
+    $sysmonExe = "$sysmonExtractPath\Sysmon64.exe"
+    if (Test-Path $sysmonExe) {
+        Write-Host "Instalar Sysmon..."
+        & $sysmonExe -accepteula -i -
+        Write-Host "Sysmon instalado com sucesso."
+    } else {
+        Write-Host "Erro: Sysmon64.exe não encontrado."
+    }
+}
+
+# Função para configurar o Sysmon
+function Configure-Sysmon {
+    $configFilePath = "$env:TEMP\sysmonconfig.xml"
+    $sysmonExe = "$sysmonExtractPath\Sysmon64.exe"
+
+    Write-Host "Configurar Sysmon..."
+    $sysmonConfigXml | Out-File -FilePath $configFilePath -Encoding UTF8
+    & $sysmonExe -c $configFilePath
+    Write-Host "Sysmon configurado com sucesso."
+}
+
+# Executar funções
+Download-Sysmon
+Install-Sysmon
+Configure-Sysmon
+
+# Limpeza de arquivos temporários
+Write-Host "Limpar arquivos temporários..."
+Remove-Item -Path $sysmonZipPath -Force
+Remove-Item -Path $sysmonExtractPath -Recurse -Force
+Write-Host "Instalação e configuração do Sysmon concluídas com sucesso."
