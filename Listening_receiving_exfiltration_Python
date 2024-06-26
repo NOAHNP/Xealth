@@ -1,0 +1,15 @@
+#Importar o flask antes de rodar este arquivo. Nomeie-o app.Py
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/receive_data', methods=['POST'])
+def receive_data():
+    file_content = request.form.get('file_content')
+    # Aqui podemos processar os dados recebidos, como salvar em um arquivo, banco de dados, etc.
+    print("Dados recebidos:")
+    print(file_content)
+    return 'Dados recebidos com sucesso!'
+
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8080)
