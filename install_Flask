@@ -1,0 +1,23 @@
+# O Flask é um micro framework para desenvolvimento web em Python. 
+# Ele é utilizado para criar aplicações web, 
+# neste exemplo vou criar uma rota e tratar uma requisição HTTP 
+
+import subprocess
+import sys
+
+def install_flask():
+    try:
+        # Verifica se pip está instalado
+        subprocess.check_call([sys.executable, "-m", "pip", "--version"])
+
+        # Instala Flask usando pip
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "Flask"])
+
+        print("Flask instalado com sucesso.")
+    except subprocess.CalledProcessError as e:
+        print(f"Erro durante a instalação do Flask: {e}")
+    except Exception as e:
+        print(f"Ocorreu um erro: {e}")
+
+if __name__ == "__main__":
+    install_flask()
