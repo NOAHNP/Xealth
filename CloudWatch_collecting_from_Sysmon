@@ -1,0 +1,106 @@
+# Este script foi preparado para
+# Define URLs e caminhos: Define o URL de download do CloudWatch Agent e os caminhos de instalação.
+# Baixa o CloudWatch Agent: Utiliza Invoke-WebRequest para baixar o instalador do CloudWatch Agent.
+# Instala o CloudWatch Agent: Usa msiexec para instalar o agente em modo silencioso.
+# Configura a coleta de logs do Sysmon: Cria uma configuração JSON para coletar logs do Sysmon, que estão localizados em C:\ProgramData\Microsoft\Windows\Sysmon.
+# Escreve a configuração JSON no arquivo: Cria o diretório de configuração e escreve a configuração JSON no local apropriado.
+# Aplica a configuração e inicia o agente: Usa o script amazon-cloudwatch-agent-ctl.ps1 para aplicar a configuração e iniciar o CloudWatch Agent.
+# Limpeza: Remove o instalador baixado para liberar espaço.
+
+
+# Defina URLs e caminhos
+$cloudWatchAgentUrl = "https://s3.amazonaws.com/amazoncloudwatch-agent/windows/amd64/latest/amazon-cloudwatch-agent.msi"
+$installerPath = "$env:TEMP\amazon-cloudwatch-agent.msi"
+$configPath = "C:\ProgramData\Amazon\AmazonCloudWatchAgent\config.json"
+
+# Baixar o CloudWatch Agent
+Write-Host "Baixando o Amazon CloudWatch Agent..."
+Invoke-WebRequest -Uri $cloudWatchAgentUrl -OutFile $installerPath
+
+# Instalar o CloudWatch Agent
+Write-Host "Instalando o Amazon CloudWatch Agent..."
+Start-Process -FilePath msiexec.exe -ArgumentList "/i", $installerPath, "/quiet" -Wait
+
+# Configuração JSON do CloudWatch Agent para capturar eventos do Sysmon
+$configJson = @"
+{
+    "agent": {
+        "metrics_collection_interval": 60,
+        "run_as_user": "Administrator"
+    },
+    "logs": {
+        "logs_collected": {
+            "files": {
+                "collect_list": [
+                    {
+                        "file_path": "C:\\ProgramData\\Microsoft\\Windows\\Sysmon\\*.log",
+                        "log_group_name": "Sysmon",
+                        "log_stream_name": "{instance_id}",
+                        "timezone": "UTC"
+                    }
+                ]
+            }
+        }
+    },
+    "metrics": {
+        "append_dimensions": {
+            "InstanceId": "{instance_id}",
+            "InstanceType": "{instance_type}"
+        },
+        "metrics_collected": {
+            "cpu": {
+                "measurement": [
+                    "usage_idle",
+                    "usage_iowait",
+                    "usage_user",
+                    "usage_system"
+                ],
+                "metrics_collection_interval": 60,
+                "resources": [
+                    "*"
+                ]
+            },
+            "memory": {
+                "measurement": [
+                    "mem_used_percent"
+                ],
+                "metrics_collection_interval": 60
+            },
+            "disk": {
+                "measurement": [
+                    "disk_used_percent"
+                ],
+                "resources": [
+                    "*"
+                ],
+                "metrics_collection_interval": 60
+            },
+            "swap": {
+                "measurement": [
+                    "swap_used_percent"
+                ],
+                "metrics_collection_interval": 60
+            }
+        }
+    }
+}
+"@
+
+# Criar o diretório se não existir
+if (-not (Test-Path -Path "C:\ProgramData\Amazon\AmazonCloudWatchAgent")) {
+    New-Item -ItemType Directory -Path "C:\ProgramData\Amazon\AmazonCloudWatchAgent"
+}
+
+# Escrever a configuração JSON no arquivo
+Write-Host "Escrevendo a configuração do Amazon CloudWatch Agent..."
+$configJson | Out-File -FilePath $configPath -Encoding utf8
+
+# Aplicar a configuração e iniciar o CloudWatch Agent
+Write-Host "Aplicando a configuração e iniciando o Amazon CloudWatch Agent..."
+& "C:\Program Files\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent-ctl.ps1" -a fetch-config -m ec2 -c file:$configPath -s
+
+# Limpeza dos arquivos temporários
+Write-Host "Limpando arquivos temporários..."
+Remove-Item -Path $installerPath -Force
+
+Write-Host "Amazon CloudWatch Agent instalado e configurado com sucesso."
