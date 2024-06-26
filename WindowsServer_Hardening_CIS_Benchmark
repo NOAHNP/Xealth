@@ -1,0 +1,53 @@
+#Script para hardening do Windows Server do Projeto Xealth feito em PowerShell
+
+# Configurar políticas de auditoria
+Write-Host "Configurando políticas de auditoria..."
+auditpol /set /subcategory:"Logon" /success:enable /failure:enable
+auditpol /set /subcategory:"Account Lockout" /success:enable /failure:enable
+auditpol /set /subcategory:"Process Termination" /success:enable /failure:enable
+auditpol /set /subcategory:"Policy Change" /success:enable /failure:enable
+
+# Configurar políticas de senha
+Write-Host "Configurar políticas de senha..."
+secedit /export /cfg C:\temp\secconfig.cfg
+(Get-Content C:\temp\secconfig.cfg).replace("MinimumPasswordLength = 0", "MinimumPasswordLength = 14") | Set-Content C:\temp\secconfig.cfg
+(Get-Content C:\temp\secconfig.cfg).replace("PasswordComplexity = 0", "PasswordComplexity = 1") | Set-Content C:\temp\secconfig.cfg
+(Get-Content C:\temp\secconfig.cfg).replace("LockoutBadCount = 0", "LockoutBadCount = 5") | Set-Content C:\temp\secconfig.cfg
+secedit /configure /db C:\temp\secconfig.sdb /cfg C:\temp\secconfig.cfg
+Remove-Item C:\temp\secconfig.cfg
+Remove-Item C:\temp\secconfig.sdb
+
+# Desabilitar serviços desnecessários
+Write-Host "Desabilitar serviços desnecessários..."
+Stop-Service -Name "Fax" -PassThru | Set-Service -StartupType Disabled
+Stop-Service -Name "Print Spooler" -PassThru | Set-Service -StartupType Disabled
+Stop-Service -Name "RemoteRegistry" -PassThru | Set-Service -StartupType Disabled
+Stop-Service -Name "Windows Error Reporting Service" -PassThru | Set-Service -StartupType Disabled
+
+# Configurar o Firewall do Windows
+Write-Host "Configurar o Firewall do Windows..."
+Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled True
+
+# Habilitar e configurar o serviço de BitLocker
+Write-Host "Habilitar e configurando o serviço de BitLocker..."
+Enable-BitLocker -MountPoint "C:" -EncryptionMethod Aes256 -UsedSpaceOnly -TpmProtector
+Add-BitLockerKeyProtector -MountPoint "C:" -RecoveryPasswordProtector
+
+# Desabilitar compartilhamento de arquivos e impressoras
+Write-Host "Desabilitar compartilhamento de arquivos e impressoras..."
+Set-SmbServerConfiguration -EnableSMB1Protocol $false
+Set-SmbServerConfiguration -EnableSMB2Protocol $false
+
+# Configurar a política de bloqueio de conta
+Write-Host "Configurar a política de bloqueio de conta..."
+Set-ADDefaultDomainPasswordPolicy -LockoutDuration 00:30:00 -LockoutThreshold 5 -LockoutObservationWindow 00:30:00
+
+# Configurar as permissões de logon local
+Write-Host "Configurar as permissões de logon local..."
+secedit /export /cfg C:\temp\secconfig.cfg
+(Get-Content C:\temp\secconfig.cfg).replace("SeDenyInteractiveLogonRight = ", "SeDenyInteractiveLogonRight = BUILTIN\Administrators") | Set-Content C:\temp\secconfig.cfg
+secedit /configure /db C:\temp\secconfig.sdb /cfg C:\temp\secconfig.cfg
+Remove-Item C:\temp\secconfig.cfg
+Remove-Item C:\temp\secconfig.sdb
+
+Write-Host "Hardening concluído com sucesso!"
